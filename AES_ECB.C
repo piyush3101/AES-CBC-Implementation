@@ -351,7 +351,7 @@ char* AES_Encrypt(unsigned char* message,unsigned char* expandedKey)
 
 }
 
-char * AES_Decrypt(unsigned char* message, unsigned char* expandedKey)
+void AES_Decrypt(unsigned char* message, unsigned char* expandedKey)
 {
   unsigned char state[16];
 
@@ -372,35 +372,17 @@ char * AES_Decrypt(unsigned char* message, unsigned char* expandedKey)
   inv_sub_bytes(state);
   AddRoundKey(state, expandedKey);
 
-  char * dec_msg = (char *) malloc(16);
-  memcpy(dec_msg, state, 16);
-  //printf("\nDecrypted Message\n");
-  //for(int i=0;i<16;i++)
-	//	printf("%.2X ",dec_msg[i]);
 	for(int i=0;i<16;i++)
 		message[i]=state[i];
-	return dec_msg;
 }
-/*
-char * right_pad_str(char * str, unsigned int pad_len) {
-  const unsigned int str_len = strlen(str);
-  unsigned int padded_str_len = str_len;
-  if (padded_str_len % pad_len != 0)
-    padded_str_len = (padded_str_len / pad_len + 1) * pad_len;
 
-  unsigned char * padded_str = malloc(padded_str_len);
-  for (int i = 0; i < padded_str_len; i++) {
-    if (i >= str_len) padded_str[i] = 0;
-    else padded_str[i] = str[i];
-  }
-  return padded_str;
-}
-*/
 int main()
 {
 	unsigned char message[]="This is a message we will encrypt using AES!";
 	unsigned char key[16]="123456789012345";
     unsigned char expandedKey[176];
+    
+    
     KeyExpansion(key,expandedKey);
 
 	int originalLen=strlen((const char*)message);
@@ -425,28 +407,18 @@ int main()
     printf("\n");
 
 	/*		Decryption		*/
+    
+    unsigned char cipherstring[lenOfPaddedMessage];
+    
+    for(int i=0;i<lenOfPaddedMessage;i++)
+        cipherstring[i]=paddedMessage[i];
 
-
-    int originalLen_2=strlen((const char*)paddedMessage);
-	int lenOfPaddedMessage_2=originalLen_2;
-
-    if(lenOfPaddedMessage_2%16 !=0)
-	lenOfPaddedMessage_2=(lenOfPaddedMessage /16 +1)*16;
-
-	unsigned char paddedMessage_2[lenOfPaddedMessage];
-	for(int i=0;i<lenOfPaddedMessage;i++)
-	{
-		if(i>=originalLen)
-			paddedMessage_2[i]=0;
-		else
-			paddedMessage_2[i]=paddedMessage[i];
-	}
-
-	for(int i=0;i<lenOfPaddedMessage_2;i+=16)
-		AES_Decrypt(paddedMessage_2 + i,expandedKey);
+	for(int i=0;i<lenOfPaddedMessage;i+=16)
+		AES_Decrypt(cipherstring + i,expandedKey);
+	
 	printf("\nDecrypted Message:\n");
-	for(int i=0;i<lenOfPaddedMessage_2;i++)
-		printf("%c",paddedMessage_2[i]);
+	for(int i=0;i<lenOfPaddedMessage;i++)
+		printf("%c",cipherstring[i]);
 
 	return 0;
 }
