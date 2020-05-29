@@ -417,8 +417,8 @@ int main()
 		AES_Decrypt(cipherstring + i,expandedKey);
 	
 	printf("\nDecrypted Message:\n");
-	for(int i=0;i<lenOfPaddedMessage;i++)
-		printf("%c",cipherstring[i]);
-
+	//for(int i=0;i<lenOfPaddedMessage;i++)
+	//	printf("%c",cipherstring[i]);
+	printf("%s",cipherstring);
 	return 0;
 }
