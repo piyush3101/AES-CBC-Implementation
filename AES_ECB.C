@@ -327,7 +327,7 @@ void AddRoundKey(unsigned char* state,unsigned char* roundKey)
 		state[i]^=roundKey[i];
 }
 
-char* AES_Encrypt(unsigned char* message,unsigned char* expandedKey)
+void AES_Encrypt(unsigned char* message,unsigned char* expandedKey)
 {
 	unsigned char state[16];
 	for(int i=0;i<16;i++)
