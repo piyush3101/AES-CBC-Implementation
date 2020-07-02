@@ -7,7 +7,7 @@ unsigned char s_box[] =
  ,0xca ,0x82 ,0xc9 ,0x7d ,0xfa ,0x59 ,0x47 ,0xf0 ,0xad ,0xd4 ,0xa2 ,0xaf ,0x9c ,0xa4 ,0x72 ,0xc0
  ,0xb7 ,0xfd ,0x93 ,0x26 ,0x36 ,0x3f ,0xf7 ,0xcc ,0x34 ,0xa5 ,0xe5 ,0xf1 ,0x71 ,0xd8 ,0x31 ,0x15
  ,0x04 ,0xc7 ,0x23 ,0xc3 ,0x18 ,0x96 ,0x05 ,0x9a ,0x07 ,0x12 ,0x80 ,0xe2 ,0xeb ,0x27 ,0xb2 ,0x75
- ,0x09 ,0x83 ,0x2c ,0x1a ,0x1b ,0x6e ,0x5a ,0xa0 ,0x52 ,0x3b ,0xd6 ,0xb3 ,0x29 ,0xe3 ,0x2f ,0x84
+ ,0x09 ,0x83 ,0x2c ,0x1a ,0x1b ,0x6e ,0x5a ,0xa0 ,0x52 ,0x3b ,0xd6  ,0xb3 ,0x29 ,0xe3 ,0x2f ,0x84
  ,0x53 ,0xd1 ,0x00 ,0xed ,0x20 ,0xfc ,0xb1 ,0x5b ,0x6a ,0xcb ,0xbe ,0x39 ,0x4a ,0x4c ,0x58 ,0xcf
  ,0xd0 ,0xef ,0xaa ,0xfb ,0x43 ,0x4d ,0x33 ,0x85 ,0x45 ,0xf9 ,0x02 ,0x7f ,0x50 ,0x3c ,0x9f ,0xa8
  ,0x51 ,0xa3 ,0x40 ,0x8f ,0x92 ,0x9d ,0x38 ,0xf5 ,0xbc ,0xb6 ,0xda ,0x21 ,0x10 ,0xff ,0xf3 ,0xd2
@@ -193,132 +193,65 @@ void KeyExpansion(unsigned char* inputKey,unsigned char* expandedKeys)
 
 
 
-void SubBytes(unsigned char* state)
-{
-	for(int i=0;i<16;i++)
-		state[i]=s_box[state[i]];
-}
-
-void inv_sub_bytes(unsigned char* state)
-{
-	  // Substitute each state value with another byte in the Rijndael S-Box
-  for (int i = 0; i < 16; i++)
-    state[i] = inv_s_box[state[i]];
-}
-
-void ShiftRows(unsigned char* state)
+void SubBytes_ShiftRows(unsigned char* state)
 {
 	unsigned char tmp[16];
-	tmp[0]=state[0];
-	tmp[1]=state[5];
-	tmp[2]=state[10];
-	tmp[3]=state[15];
 
-	tmp[4]=state[4];
-	tmp[5]=state[9];
-	tmp[6]=state[14];
-	tmp[7]=state[3];
+    for(int i=0;i<16;i+=4)
+    {
+        tmp[i]=s_box[state[i]];
+        tmp[i+1]=s_box[state[(i+5)%16]];
+        tmp[i+2]=s_box[state[(i+10)%16]];
+        tmp[i+3]=s_box[state[(i+15)%16]];
+    }
 
-	tmp[8]=state[8];
-	tmp[9]=state[13];
-	tmp[10]=state[2];
-	tmp[11]=state[7];
-
-	tmp[12]=state[12];
-	tmp[13]=state[1];
-	tmp[14]=state[6];
-	tmp[15]=state[11];
 	for(int i=0;i<16;i++)
 		state[i]=tmp[i];
 }
 
-void inv_shift_rows(unsigned char* state)
+void inv_subbytes_shiftrows(unsigned char* state)
 {
-  unsigned char tmp[16];
+    unsigned char tmp[16];
+    for (int i = 0; i < 16; i+=4)
+    {
+        tmp[i]=inv_s_box[state[i]];
+        tmp[i+1]=inv_s_box[state[(13+i)%16]];
+        tmp[i+2]=inv_s_box[state[(10+i)%16]];
+        tmp[i+3]=inv_s_box[state[(7+i)%16]];
+    }
+    for(int i=0;i<16;i++)
+        state[i]=tmp[i];
 
-  // First row don't shift (idx = idx)
-  tmp[0] = state[0];
-  tmp[4] = state[4];
-  tmp[8] = state[8];
-  tmp[12] = state[12];
-
-  // Second row shift right once (idx = (idx - 4) % 16)
-  tmp[1] = state[13];
-  tmp[5] = state[1];
-  tmp[9] = state[5];
-  tmp[13] = state[9];
-
-  // Third row shift right twice (idx = (idx +/- 8) % 16)
-  tmp[2] = state[10];
-  tmp[6] = state[14];
-  tmp[10] = state[2];
-  tmp[14] = state[6];
-
-  // Fourth row shift right three times (idx = (idx + 4) % 16)
-  tmp[3] = state[7];
-  tmp[7] = state[11];
-  tmp[11] = state[15];
-  tmp[15] = state[3];
-
-  for (int i = 0; i < 16; i++)
-     state[i] = tmp[i];
 }
 
-void MixColumns(unsigned char* state)
+void MixColumns_AddRoundKey(unsigned char* state,unsigned char* roundKey)
 {
 	char tmp[16];
-	tmp[0] = (unsigned char)(mul2[state[0]] ^ mul3[state[1]] ^ state[2] ^ state[3]);
-	tmp[1] = (unsigned char)(state[0] ^ mul2[state[1]] ^ mul3[state[2]] ^ state[3]);
-	tmp[2] = (unsigned char)(state[0] ^ state[1] ^ mul2[state[2]] ^ mul3[state[3]]);
-	tmp[3] = (unsigned char)(mul3[state[0]] ^ state[1] ^ state[2] ^ mul2[state[3]]);
 
-	tmp[4] = (unsigned char)(mul2[state[4]] ^ mul3[state[5]] ^ state[6] ^ state[7]);
-	tmp[5] = (unsigned char)(state[4] ^ mul2[state[5]] ^ mul3[state[6]] ^ state[7]);
-	tmp[6] = (unsigned char)(state[4] ^ state[5] ^ mul2[state[6]] ^ mul3[state[7]]);
-	tmp[7] = (unsigned char)(mul3[state[4]] ^ state[5] ^ state[6] ^ mul2[state[7]]);
-
-	tmp[8] = (unsigned char)(mul2[state[8]] ^ mul3[state[9]] ^ state[10] ^ state[11]);
-	tmp[9] = (unsigned char)(state[8] ^ mul2[state[9]] ^ mul3[state[10]] ^ state[11]);
-	tmp[10] = (unsigned char)(state[8] ^ state[9] ^ mul2[state[10]] ^ mul3[state[11]]);
-	tmp[11] = (unsigned char)(mul3[state[8]] ^ state[9] ^ state[10] ^ mul2[state[11]]);
-
-	tmp[12] = (unsigned char)(mul2[state[12]] ^ mul3[state[13]] ^ state[14] ^ state[15]);
-	tmp[13] = (unsigned char)(state[12] ^ mul2[state[13]] ^ mul3[state[14]] ^ state[15]);
- 	tmp[14] = (unsigned char)(state[12] ^ state[13] ^ mul2[state[14]] ^ mul3[state[15]]);
- 	tmp[15] = (unsigned char)(mul3[state[12]] ^ state[13] ^ state[14] ^ mul2[state[15]]);
+    for(int i=0;i<16;i+=4)
+    {
+        tmp[i] = (unsigned char)(mul2[state[i]] ^ mul3[state[i+1]] ^ state[i+2] ^ state[i+3]);
+        tmp[i+1] = (unsigned char)(state[i] ^ mul2[state[i+1]] ^ mul3[state[i+2]] ^ state[i+3]);
+        tmp[i+2] = (unsigned char)(state[i] ^ state[i+1] ^ mul2[state[i+2]] ^ mul3[state[i+3]]);
+        tmp[i+3] = (unsigned char)(mul3[state[i]] ^ state[i+1] ^ state[i+2] ^ mul2[state[i+3]]);
+    }
 	for(int i=0;i<16;i++)
-		state[i]=tmp[i];
+		state[i]=tmp[i]^roundKey[i];
 }
+void inv_mix_columns(unsigned char* state)
+{
 
-void inv_mix_columns(unsigned char* state) {
-  unsigned char tmp[16];
+    unsigned char tmp[16];
 
-  // Column 1
-  tmp[0] = (unsigned char) (mul14[state[0]] ^ mul11[state[1]] ^ mul13[state[2]] ^ mul9[state[3]]);
-  tmp[1] = (unsigned char) (mul9[state[0]] ^ mul14[state[1]] ^ mul11[state[2]] ^ mul13[state[3]]);
-  tmp[2] = (unsigned char) (mul13[state[0]] ^ mul9[state[1]] ^ mul14[state[2]] ^ mul11[state[3]]);
-  tmp[3] = (unsigned char) (mul11[state[0]] ^ mul13[state[1]] ^ mul9[state[2]] ^ mul14[state[3]]);
-
-  // Column 2
-  tmp[4] = (unsigned char) (mul14[state[4]] ^ mul11[state[5]] ^ mul13[state[6]] ^ mul9[state[7]]);
-  tmp[5] = (unsigned char) (mul9[state[4]] ^ mul14[state[5]] ^ mul11[state[6]] ^ mul13[state[7]]);
-  tmp[6] = (unsigned char) (mul13[state[4]] ^ mul9[state[5]] ^ mul14[state[6]] ^ mul11[state[7]]);
-  tmp[7] = (unsigned char) (mul11[state[4]] ^ mul13[state[5]] ^ mul9[state[6]] ^ mul14[state[7]]);
-
-  // Column 3
-  tmp[8] = (unsigned char) (mul14[state[8]] ^ mul11[state[9]] ^ mul13[state[10]] ^ mul9[state[11]]);
-  tmp[9] = (unsigned char) (mul9[state[8]] ^ mul14[state[9]] ^ mul11[state[10]] ^ mul13[state[11]]);
-  tmp[10] = (unsigned char) (mul13[state[8]] ^ mul9[state[9]] ^ mul14[state[10]] ^ mul11[state[11]]);
-  tmp[11] = (unsigned char) (mul11[state[8]] ^ mul13[state[9]] ^ mul9[state[10]] ^ mul14[state[11]]);
-
-  // Column 4
-  tmp[12] = (unsigned char) (mul14[state[12]] ^ mul11[state[13]] ^ mul13[state[14]] ^ mul9[state[15]]);
-  tmp[13] = (unsigned char) (mul9[state[12]] ^ mul14[state[13]] ^ mul11[state[14]] ^ mul13[state[15]]);
-  tmp[14] = (unsigned char) (mul13[state[12]] ^ mul9[state[13]] ^ mul14[state[14]] ^ mul11[state[15]]);
-  tmp[15] = (unsigned char) (mul11[state[12]] ^ mul13[state[13]] ^ mul9[state[14]] ^ mul14[state[15]]);
-
-  for (int i = 0; i < 16; i++)
-     state[i] = tmp[i];
+    for(int i=0;i<16;i+=4)
+    {
+        tmp[i] = (unsigned char) (mul14[state[i]] ^ mul11[state[i+1]] ^ mul13[state[i+2]] ^ mul9[state[i+3]]);
+        tmp[i+1] = (unsigned char) (mul9[state[i]] ^ mul14[state[i+1]] ^ mul11[state[i+2]] ^ mul13[state[i+3]]);
+        tmp[i+2] = (unsigned char) (mul13[state[i]] ^ mul9[state[i+1]] ^ mul14[state[i+2]] ^ mul11[state[i+3]]);
+        tmp[i+3] = (unsigned char) (mul11[state[i]] ^ mul13[state[i+1]] ^ mul9[state[i+2]] ^ mul14[state[i+3]]);
+    }
+    for (int i = 0; i < 16; i++)
+        state[i] = tmp[i];
 }
 
 void AddRoundKey(unsigned char* state,unsigned char* roundKey)
@@ -327,7 +260,7 @@ void AddRoundKey(unsigned char* state,unsigned char* roundKey)
 		state[i]^=roundKey[i];
 }
 
-char* AES_Encrypt(unsigned char* message,unsigned char* expandedKey)
+void AES_Encrypt(unsigned char* message,unsigned char* expandedKey)
 {
 	unsigned char state[16];
 	for(int i=0;i<16;i++)
@@ -336,13 +269,13 @@ char* AES_Encrypt(unsigned char* message,unsigned char* expandedKey)
 	AddRoundKey(state,expandedKey);
 	for(int i=0;i<numberofRounds;i++)
 	{
-		SubBytes(state);
-		ShiftRows(state);
-		MixColumns(state);
-		AddRoundKey(state,expandedKey + (16 *(i+1)));
+
+		SubBytes_ShiftRows(state);
+		MixColumns_AddRoundKey(state, expandedKey +(16 *(i+1)));
+
 	}
-	SubBytes(state);
-	ShiftRows(state);
+
+	SubBytes_ShiftRows(state);
 	AddRoundKey(state,expandedKey+160);
 
 	for(int i=0;i<16;i++)
@@ -354,9 +287,7 @@ char* AES_Encrypt(unsigned char* message,unsigned char* expandedKey)
 void AES_Decrypt(unsigned char* message, unsigned char* expandedKey, unsigned char* iv)
 {
   unsigned char state[16];
-  unsigned char state_2[16];
 
-  // Take only the first 16 characters of the message
   for (int i = 0; i < 16; i++)
      state[i] = message[i];
 
@@ -365,13 +296,14 @@ void AES_Decrypt(unsigned char* message, unsigned char* expandedKey, unsigned ch
 
   for (int i = round_cnt; i > 0; i--)
   {
-    inv_shift_rows(state);
-    inv_sub_bytes(state);
+
+    inv_subbytes_shiftrows(state);
     AddRoundKey(state, expandedKey + (16 * i));
     inv_mix_columns(state);
+
   }
-  inv_shift_rows(state);
-  inv_sub_bytes(state);
+
+  inv_subbytes_shiftrows(state);
   AddRoundKey(state, expandedKey);
 
 	for(int i=0;i<16;i++)
@@ -385,8 +317,9 @@ void AES_Decrypt(unsigned char* message, unsigned char* expandedKey, unsigned ch
 int main()
 {
 	unsigned char message[]="This is a message we will encrypt using AES!";
-	unsigned char key[16]="123456789012345";
-    unsigned char iv[16]="password1234abcd";
+	unsigned char key[16]="password1234abcd";
+    unsigned char iv[16]={0xda, 0x63, 0xbb, 0x53, 0x19, 0x65, 0xd1, 0xad,
+                        0x7f, 0xef, 0xeb, 0x0c, 0x3b, 0x36, 0xfb, 0x85};
     unsigned char expandedKey[176];
     KeyExpansion(key,expandedKey);
 
@@ -445,8 +378,7 @@ int main()
             iv[j]=iv_2[j];
         }
     }
-	printf("\nDecrypted Message:\n");
-	printf("%s",cipherstring);
+	printf("\n\n\nDecrypted Message:\n");
+	printf("%s\n\n",cipherstring);
 	return 0;
 }
-
